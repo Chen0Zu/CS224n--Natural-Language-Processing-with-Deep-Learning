@@ -64,8 +64,8 @@ def naiveSoftmaxLossAndGradient(
     
     loss = -np.log(softmax_value[outsideWordIdx])
     
-    gradCenterVec = -outsideVectors[outsideWordIdx,:].reshape(1,-1)
-    +np.sum(softmax_value*outsideVectors, axis=0).reshape(1,-1)
+    gradCenterVec = -outsideVectors[outsideWordIdx,:].reshape(1,-1)\
+    +np.sum(softmax_value*outsideVectors, axis=0, keepdims = True)
     
     gradOutsideVecs = softmax_value * np.repeat(centerWordVec, n, axis=0)
     gradOutsideVecs[outsideWordIdx,:] -= centerWordVec.flatten()
