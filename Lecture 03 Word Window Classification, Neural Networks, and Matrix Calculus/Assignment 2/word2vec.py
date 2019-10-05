@@ -115,7 +115,23 @@ def negSamplingLossAndGradient(
     ### YOUR CODE HERE
 
     ### Please use your implementation of sigmoid in here.
-
+    loss = 0
+    dot_u_v = outsideVectors[outsideWordIdx,:].reshape(1,-1) @ centerWordVec.T
+    loss = -np.log(sigmoid(dot_u_v))
+    gradCenterVec = -(1-sigmoid(dot_u_v))*outsideVectors[outsideWordIdx,:].reshape(1,-1 )
+    gradOutsideVecs = np.zeros(outsideVectors.shape)
+    gradOutsideVecs[outsideWordIdx,:] += -((1-sigmoid(dot_u_v))*centerWordVec).flatten()
+    for idx in negSampleWordIndices:
+        dot_u_v = outsideVectors[idx,:].reshape(1,-1) @ centerWordVec.T
+        
+        loss += -np.log(sigmoid(-dot_u_v))
+        
+        gradCenterVec += (1-sigmoid(-dot_u_v))*outsideVectors[idx,:].reshape(1,-1)
+        
+        tmp = (1-sigmoid(-dot_u_v))*centerWordVec
+        gradOutsideVecs[idx,:] += tmp.flatten()
+        
+    
 
     ### END YOUR CODE
 
@@ -163,7 +179,7 @@ def skipgram(currentCenterWord, windowSize, outsideWords, word2Ind,
     
     for w in outsideWords:
         outsideWordIdx = word2Ind[w]
-        currentloss, gradCenterVec, gradOutsideVecs = naiveSoftmaxLossAndGradient(
+        currentloss, gradCenterVec, gradOutsideVecs = word2vecLossAndGradient(
                 centerWordVec,
                 outsideWordIdx,
                 outsideVectors,
@@ -228,9 +244,9 @@ def test_word2vec():
         dummy_vectors, "naiveSoftmaxLossAndGradient Gradient")
 
     print("==== Gradient check for skip-gram with negSamplingLossAndGradient ====")
-#    gradcheck_naive(lambda vec: word2vec_sgd_wrapper(
-#        skipgram, dummy_tokens, vec, dataset, 5, negSamplingLossAndGradient),
-#        dummy_vectors, "negSamplingLossAndGradient Gradient")
+    gradcheck_naive(lambda vec: word2vec_sgd_wrapper(
+        skipgram, dummy_tokens, vec, dataset, 5, negSamplingLossAndGradient),
+        dummy_vectors, "negSamplingLossAndGradient Gradient")
 
     print("\n=== Results ===")
     print ("Skip-Gram with naiveSoftmaxLossAndGradient")
@@ -258,28 +274,28 @@ Gradient wrt Outside Vectors (dJ/dU):
  [-0.13638384  0.06258276  0.47605228]]
     """)
 
-#    print ("Skip-Gram with negSamplingLossAndGradient")   
-#    print ("Your Result:")
-#    print("Loss: {}\nGradient wrt Center Vectors (dJ/dV):\n {}\n Gradient wrt Outside Vectors (dJ/dU):\n {}\n".format(
-#        *skipgram("c", 1, ["a", "b"], dummy_tokens, dummy_vectors[:5,:],
-#            dummy_vectors[5:,:], dataset, negSamplingLossAndGradient)
-#        )
-#    )
-#    print ("Expected Result: Value should approximate these:")
-#    print("""Loss: 16.15119285363322
-#Gradient wrt Center Vectors (dJ/dV):
-# [[ 0.          0.          0.        ]
-# [ 0.          0.          0.        ]
-# [-4.54650789 -1.85942252  0.76397441]
-# [ 0.          0.          0.        ]
-# [ 0.          0.          0.        ]]
-# Gradient wrt Outside Vectors (dJ/dU):
-# [[-0.69148188  0.31730185  2.41364029]
-# [-0.22716495  0.10423969  0.79292674]
-# [-0.45528438  0.20891737  1.58918512]
-# [-0.31602611  0.14501561  1.10309954]
-# [-0.80620296  0.36994417  2.81407799]]
-#    """)
+    print ("Skip-Gram with negSamplingLossAndGradient")   
+    print ("Your Result:")
+    print("Loss: {}\nGradient wrt Center Vectors (dJ/dV):\n {}\n Gradient wrt Outside Vectors (dJ/dU):\n {}\n".format(
+        *skipgram("c", 1, ["a", "b"], dummy_tokens, dummy_vectors[:5,:],
+            dummy_vectors[5:,:], dataset, negSamplingLossAndGradient)
+        )
+    )
+    print ("Expected Result: Value should approximate these:")
+    print("""Loss: 16.15119285363322
+Gradient wrt Center Vectors (dJ/dV):
+ [[ 0.          0.          0.        ]
+ [ 0.          0.          0.        ]
+ [-4.54650789 -1.85942252  0.76397441]
+ [ 0.          0.          0.        ]
+ [ 0.          0.          0.        ]]
+ Gradient wrt Outside Vectors (dJ/dU):
+ [[-0.69148188  0.31730185  2.41364029]
+ [-0.22716495  0.10423969  0.79292674]
+ [-0.45528438  0.20891737  1.58918512]
+ [-0.31602611  0.14501561  1.10309954]
+ [-0.80620296  0.36994417  2.81407799]]
+    """)
 
 if __name__ == "__main__":
     test_word2vec()
