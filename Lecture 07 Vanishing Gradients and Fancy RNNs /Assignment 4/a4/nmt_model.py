@@ -146,7 +146,7 @@ class NMT(nn.Module):
         ###     2. Compute `enc_hiddens`, `last_hidden`, `last_cell` by applying the encoder to `X`.
         ###         - Before you can apply the encoder, you need to apply the `pack_padded_sequence` function to X.
         ###         - After you apply the encoder, you need to apply the `pad_packed_sequence` function to enc_hiddens.
-        ###         - Note that the shape of the tensor returned by the encoder is (src_len b, h*2) and we want to
+        ###         - Note that the shape of the tensor returned by the encoder is (src_len, b, h*2) and we want to
         ###           return a tensor of shape (b, src_len, h*2) as `enc_hiddens`.
         ###     3. Compute `dec_init_state` = (init_decoder_hidden, init_decoder_cell):
         ###         - `init_decoder_hidden`:
@@ -170,6 +170,17 @@ class NMT(nn.Module):
         ###     Tensor Permute:
         ###         https://pytorch.org/docs/stable/tensors.html#torch.Tensor.permute
 
+        X = self.model_embeddings.source(source_padded) #(src_len, b, e)
+        X_packed = pack_padded_sequence(X, source_lengths) # 
+        enc_hiddens, (last_hidden, last_cell) = self.encoder(X_packed)
+        enc_hiddens, _ = pad_packed_sequence(enc_hiddens)
+        enc_hiddens = enc_hiddens.transpose(0, 1)
+        last_hidden = torch.cat((last_hidden[0], last_hidden[1]), 1)
+        init_decoder_hidden = self.h_projection(last_hidden)
+        last_cell = torch.cat((last_cell[0], last_cell[1]), 1)
+        init_decoder_cell = self.c_projection(last_cell)
+
+        dec_init_state = (init_decoder_hidden, init_decoder_cell)
 
         ### END YOUR CODE
 
