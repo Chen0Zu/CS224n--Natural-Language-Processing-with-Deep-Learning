@@ -251,7 +251,19 @@ class NMT(nn.Module):
         ###     Tensor Stacking:
         ###         https://pytorch.org/docs/stable/torch.html#torch.stack
 
-
+        # 1,
+        enc_hiddens_proj = self.att_projection(enc_hiddens) # enc_hiddens: (b, l, h * 2)  dot (h * 2, h) -> b, l, h
+        # 2,
+        Y = self.model_embeddings.target(target_padded) # (tgt_len, b, h)
+        # 3,
+        for Y_t in torch.split(Y, 1, dim=0):
+            squeezed = torch.squeeze(Y_t) # shape (b, e)
+            Ybar_t = torch.cat((squeezed, o_prev), dim=1) # shape (b, e + h)
+            dec_state, o_t, _ = self.step(Ybar_t, dec_state, enc_hiddens, enc_hiddens_proj, enc_masks)
+            combined_outputs.append(o_t)
+            o_prev = o_t
+        # 4,
+        combined_outputs = torch.stack(combined_outputs, dim=0)
         ### END YOUR CODE
 
         return combined_outputs
@@ -308,7 +320,12 @@ class NMT(nn.Module):
         ###         https://pytorch.org/docs/stable/torch.html#torch.unsqueeze
         ###     Tensor Squeeze:
         ###         https://pytorch.org/docs/stable/torch.html#torch.squeeze
-
+        
+        # 1,
+        dec_state = self.decoder(Ybar_t, dec_state)
+        (dec_hidden, dec_cell) = dec_state
+        # 3, (b, src_len, h) .dot(b, h, 1) -> (b, src_len, 1) -> (b, src_len)
+        e_t = enc_hiddens_proj.bmm(dec_hidden.unsqueeze(2)).squeeze(2)
 
         ### END YOUR CODE
 
@@ -343,7 +360,19 @@ class NMT(nn.Module):
         ###         https://pytorch.org/docs/stable/torch.html#torch.cat
         ###     Tanh:
         ###         https://pytorch.org/docs/stable/torch.html#torch.tanh
+        
+        # 1, apply softmax to e_t
+        alpha_t = F.softmax(e_t, dim=1) # (b, src_len)
+        # 2, (b, 1, src_len) x (b, src_len, 2h) = (b, 1, 2h) -> (b, 2h)
+        # a_t = e_t.unsqueeze(1).bmm(enc_hiddens).squeeze(1)
+        att_view = (alpha_t.size(0), 1, alpha_t.size(1))
+        a_t = torch.bmm(alpha_t.view(*att_view), enc_hiddens).squeeze(1)
 
+        # 3, concate a_t (b, 2h) and dec_hidden (b, h) to U_t (b, 3h)
+        U_t = torch.cat((a_t, dec_hidden), dim=1)
+        # 4, apply combined output to U_T -> V_t, shape (b, h)
+        V_t = self.combined_output_projection(U_t)
+        O_t = self.dropout(torch.tanh(V_t))
 
         ### END YOUR CODE
 
