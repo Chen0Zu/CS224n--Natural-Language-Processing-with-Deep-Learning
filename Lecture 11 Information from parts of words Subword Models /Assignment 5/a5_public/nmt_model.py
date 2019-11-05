@@ -99,7 +99,7 @@ class NMT(nn.Module):
         ###     - Modify calls to encode() and decode() to use the character level encodings
         source_padded_chars = self.vocab.src.to_input_tensor_char(source, device=self.device) # (src_len, b, max_w_len)
         target_padded_chars = self.vocab.tgt.to_input_tensor_char(target, device=self.device) # (tgt_len, b, max_w_len)
-        target_padded       =  self.vocab.tgt.to_input_tensor(target, device=self.device) # (tgt_len, b)
+        target_padded       = self.vocab.tgt.to_input_tensor(target, device=self.device) # (tgt_len, b)
 
         enc_hiddens, dec_init_state = self.encode(source_padded_chars, source_lengths)
         enc_masks = self.generate_sent_masks(enc_hiddens, source_lengths)
@@ -149,7 +149,7 @@ class NMT(nn.Module):
 
         ### COPY OVER YOUR CODE FROM ASSIGNMENT 4
         ### Except replace "self.model_embeddings.source" with "self.model_embeddings_source"
-        X = self.model_embeddings.source(source_padded) #(src_len, b, e)
+        X = self.model_embeddings_source(source_padded) #(src_len, b, e)
         X_packed = pack_padded_sequence(X, source_lengths) # 
         enc_hiddens, (last_hidden, last_cell) = self.encoder(X_packed)
         enc_hiddens, _ = pad_packed_sequence(enc_hiddens)
@@ -197,7 +197,8 @@ class NMT(nn.Module):
         # 1,
         enc_hiddens_proj = self.att_projection(enc_hiddens) # enc_hiddens: (b, l, h * 2)  dot (h * 2, h) -> b, l, h
         # 2,
-        Y = self.model_embeddings.target(target_padded) # (tgt_len, b, h)
+        Y = self.model_embeddings_target(target_padded) # (tgt_len, b, h)
+        
         # 3,
         for Y_t in torch.split(Y, 1, dim=0):
             squeezed = torch.squeeze(Y_t) # shape (b, e)
@@ -252,7 +253,9 @@ class NMT(nn.Module):
 
         # Set e_t to -inf where enc_masks has 1
         if enc_masks is not None:
-            e_t.data.masked_fill_(enc_masks.byte(), -float('inf'))
+            # e_t.data.masked_fill_(enc_masks.byte(), -float('inf'))
+            e_t.data.masked_fill_(enc_masks.bool(), -float('inf'))
+
 
         ### COPY OVER YOUR CODE FROM ASSIGNMENT 4
         # 1, apply softmax to e_t
