@@ -11,17 +11,26 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "args": [
+                // "train",
+                // "--train-src=./en_es_data/train_tiny.es",
+                // "--train-tgt=./en_es_data/train_tiny.en",
+                // "--dev-src=./en_es_data/dev_tiny.es",
+                // "--dev-tgt=./en_es_data/dev_tiny.en",
+                // "--vocab=vocab_tiny_q1.json",
+                // "--batch-size=2",
+                // "--valid-niter=100",
+                // "--max-epoch=101",
+                // "--no-char-decoder"
+                // "2d"
                 "train",
                 "--train-src=./en_es_data/train_tiny.es",
                 "--train-tgt=./en_es_data/train_tiny.en",
                 "--dev-src=./en_es_data/dev_tiny.es",
                 "--dev-tgt=./en_es_data/dev_tiny.en",
-                "--vocab=vocab_tiny_q1.json",
+                "--vocab=vocab_tiny_q2.json",
                 "--batch-size=2",
-                "--valid-niter=100",
-                "--max-epoch=101",
-                "--no-char-decoder"
-                // "1e"
+                "--max-epoch=201",
+                "--valid-niter=100"
             ]
         }
     ]
